@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fin API 명세</title>
+<meta name="description" content="Fin 백엔드 HTTP API 명세. 원본은 README.md와 docs/*.md 마크다운입니다.">
+<link rel="alternate" type="text/markdown" href="README.md" title="명세 원문 (Markdown)">
+<link rel="icon" type="image/png" href="assets/logo.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
+<style>
+  /* 색은 Fin-FE(src) 기준 */
+  :root {
+    --mint: #03BFA5;
+    --mint-dark: #02A892;
+    --mint-soft: #EFFFFD;
+    --mint-line: #BFEFE8;
+    --text: #454545;
+    --strong: #26313A;
+    --muted: #7A7A7A;
+    --line: #E4E4E4;
+    --soft: #F7F8F8;
+    --blue: #2C88D9;
+    --orange: #E08A1E;
+    --red: #D3455B;
+    --sidebar: 300px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+  body {
+    margin: 0;
+    background: #fff;
+    color: var(--text);
+    font-family: "Pretendard", -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    font-size: 15.5px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--mint-dark); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* 사이드 목차 */
+  .toc {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: var(--sidebar);
+    padding: 32px 20px 40px;
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+    font-size: 14px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; margin: 0 8px 28px; }
+  .brand img { height: 28px; }
+  .brand span { color: var(--muted); font-size: 13px; font-weight: 500; padding-top: 3px; }
+  .toc .group { margin: 18px 0 4px; padding: 0 10px; font-size: 12px; font-weight: 700; color: var(--strong); letter-spacing: 0.02em; }
+  .toc .group a { color: inherit; padding: 0; }
+  .toc .group a:hover { background: none; color: var(--mint-dark); }
+  .toc ul { list-style: none; margin: 0; padding: 0; }
+  .toc li { margin: 1px 0; }
+  .toc li a {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 10px; border-radius: 6px;
+    color: var(--muted);
+  }
+  .toc li a:hover { color: var(--strong); background: var(--soft); text-decoration: none; }
+  .toc li a.active { color: var(--mint-dark); background: var(--mint-soft); font-weight: 600; }
+  .toc li a code { font-family: inherit; font-size: 13px; background: none; padding: 0; overflow-wrap: anywhere; color: inherit; }
+  .toc .links { margin-top: 28px; padding: 16px 10px 0; border-top: 1px solid var(--line); display: grid; gap: 4px; }
+  .toc .links a { color: var(--text); }
+
+  /* 메서드 배지 */
+  .method {
+    display: inline-block; min-width: 54px; padding: 2px 0;
+    border-radius: 6px; text-align: center;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.02em; color: #fff;
+    background: var(--muted);
+  }
+  .toc .method { min-width: 42px; font-size: 10px; padding: 1px 0; flex-shrink: 0; }
+  .method.get { background: var(--mint); }
+  .method.post { background: var(--blue); }
+  .method.put, .method.patch { background: var(--orange); }
+  .method.delete { background: var(--red); }
+
+  /* 본문 */
+  main { margin-left: var(--sidebar); padding: 56px 48px 96px; }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1, h2, h3 { color: var(--strong); letter-spacing: -0.01em; }
+  #overview > h1 { font-size: 32px; line-height: 1.3; margin: 0 0 10px; }
+  .doc { margin-top: 88px; }
+  .doc > h1 {
+    font-size: 26px; margin: 0 0 8px; padding-bottom: 10px;
+    border-bottom: 2px solid var(--mint);
+  }
+  #overview h2 { font-size: 22px; margin: 48px 0 10px; }
+  #overview h3 { font-size: 17px; margin: 28px 0 8px; }
+
+  .endpoint { margin: 40px 0 0; padding: 22px 24px 18px; border: 1px solid var(--line); border-radius: 12px; }
+  .endpoint > h2 { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 6px; font-size: 18px; }
+  .endpoint > h2 code { font-size: 17px; background: none; padding: 0; color: var(--strong); font-weight: 600; overflow-wrap: anywhere; }
+  .endpoint h3 { font-size: 14px; margin: 22px 0 6px; color: var(--muted); font-weight: 700; }
+  .endpoint > p:first-of-type { margin-top: 4px; }
+
+  .auth { display: inline-flex; align-items: center; gap: 6px; list-style: none; padding: 0; margin: 6px 0 4px; font-size: 13.5px; }
+  .auth li { margin: 0; }
+  .tag { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; border: 1px solid var(--line); color: var(--muted); background: #fff; }
+  .tag.login { color: var(--mint-dark); border-color: var(--mint-line); background: var(--mint-soft); }
+  .tag.agreed { color: #fff; border-color: var(--mint); background: var(--mint); }
+
+  p { margin: 8px 0; }
+  ul, ol { margin: 6px 0 10px; padding-left: 22px; }
+  li { margin: 3px 0; }
+  strong { font-weight: 650; color: var(--strong); }
+
+  .table-scroll { overflow-x: auto; margin: 8px 0 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--soft); font-weight: 600; color: var(--strong); white-space: nowrap; }
+  td code { white-space: nowrap; }
+
+  code { font-family: "JetBrains Mono", Consolas, "D2Coding", monospace; font-size: 0.88em; background: var(--soft); padding: 1px 5px; border-radius: 4px; color: var(--strong); }
+  pre {
+    margin: 8px 0 12px; padding: 14px 16px; overflow-x: auto;
+    background: var(--soft); border: 1px solid var(--line); border-radius: 8px;
+    font-size: 13px; line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  .status { color: var(--muted); }
+  .status a { color: var(--mint-dark); }
+
+  footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+
+  @media (max-width: 900px) {
+    .toc { position: static; width: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 20px 16px; }
+    .toc li.ep { display: none; }
+    .brand { margin-bottom: 8px; }
+    main { margin-left: 0; padding: 28px 16px 64px; }
+    .endpoint { padding: 18px 16px 14px; }
+    .doc { margin-top: 64px; }
+  }
+</style>
+</head>
+<body>
+<nav class="toc" id="toc">
+  <div class="brand"><img src="assets/logo.png" alt="Fin"><span>API 명세</span></div>
+</nav>
+<main>
+  <div class="wrap" id="content">
+    <p class="status">명세를 불러오는 중입니다. 원문은 <a href="README.md">README.md</a>와 거기서 링크한 docs/*.md 마크다운이며, 작성 규칙은 <a href="AGENTS.md">AGENTS.md</a>에 있습니다.</p>
+  </div>
+</main>
+<script>
+const METHOD_HEADING = /^(GET|POST|PUT|PATCH|DELETE)\s+(\S+)$/;
+const AUTH_TAG = { '공개': 'public', '로그인': 'login', '약관 동의': 'agreed' };
+
+// AGENTS.md의 앵커 규칙과 같다: 소문자, 영문·숫자·한글 외 문자는 '-'
+function slug(text) {
+  return text.toLowerCase().replace(/[^a-z0-9가-힣]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+async function fetchText(path) {
+  const res = await fetch(path, { cache: 'no-cache' });
+  if (!res.ok) throw new Error(`${path}: ${res.status}`);
+  return res.text();
+}
+
+// 엔드포인트(## METHOD /path)마다 다음 ## 전까지를 카드로 묶고 배지를 붙인다.
+function decorateEndpoints(section) {
+  for (const h2 of [...section.querySelectorAll(':scope > h2')]) {
+    const m = h2.textContent.trim().match(METHOD_HEADING);
+    if (!m) continue;
+    const [, method, path] = m;
+    h2.id = slug(`${method} ${path}`);
+    h2.dataset.method = method;
+    h2.dataset.path = path;
+    h2.innerHTML = `<span class="method ${method.toLowerCase()}">${method}</span><code></code>`;
+    h2.querySelector('code').textContent = path;
+
+    const card = document.createElement('article');
+    card.className = 'endpoint';
+    h2.before(card);
+    let node = h2;
+    while (node && !(node !== h2 && /^H[12]$/.test(node.tagName))) {
+      const next = node.nextElementSibling;
+      card.append(node);
+      node = next;
+    }
+
+    const authItem = [...card.querySelectorAll(':scope > ul > li')].find(li => li.textContent.startsWith('인증:'));
+    if (authItem) {
+      const raw = authItem.textContent.replace('인증:', '').trim();
+      const level = Object.keys(AUTH_TAG).find(k => raw.startsWith(k));
+      if (level) {
+        const rest = raw.slice(level.length).trim();
+        authItem.innerHTML = `인증 <span class="tag ${AUTH_TAG[level]}">${level}</span> `;
+        authItem.append(rest);
+        authItem.parentElement.classList.add('auth');
+      }
+    }
+  }
+}
+
+// 마크다운끼리의 상대 링크를 페이지 안 앵커로 바꾼다.
+function rewriteLinks(root) {
+  for (const a of root.querySelectorAll('a[href]')) {
+    const href = a.getAttribute('href');
+    if (/^https?:/.test(href)) { a.target = '_blank'; a.rel = 'noopener'; continue; }
+    const m = href.match(/(?:^|\/)([\w-]+)\.md(#.*)?$/);
+    if (!m) continue;
+    const [, name, hash] = m;
+    a.setAttribute('href', hash || (name === 'README' ? '#overview' : `#${name}`));
+  }
+}
+
+function buildToc(content) {
+  const toc = document.getElementById('toc');
+  const addGroup = (label, href) => {
+    const div = document.createElement('div');
+    div.className = 'group';
+    div.innerHTML = `<a href="${href}"></a>`;
+    div.firstChild.textContent = label;
+    toc.append(div);
+    const ul = document.createElement('ul');
+    toc.append(ul);
+    return ul;
+  };
+  const addItem = (ul, h2) => {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = `#${h2.id}`;
+    if (h2.dataset.method) {
+      li.className = 'ep';
+      a.innerHTML = `<span class="method ${h2.dataset.method.toLowerCase()}">${h2.dataset.method}</span><code></code>`;
+      a.querySelector('code').textContent = h2.dataset.path;
+    } else {
+      a.textContent = h2.textContent;
+    }
+    li.append(a);
+    ul.append(li);
+  };
+
+  const overview = content.querySelector('#overview');
+  const ovList = addGroup('개요', '#overview');
+  overview.querySelectorAll(':scope > h2').forEach(h2 => addItem(ovList, h2));
+
+  content.querySelectorAll('section.doc').forEach(sec => {
+    const ul = addGroup(sec.querySelector('h1').textContent, `#${sec.id}`);
+    sec.querySelectorAll('.endpoint > h2').forEach(h2 => addItem(ul, h2));
+  });
+
+  const links = document.createElement('div');
+  links.className = 'links';
+  links.innerHTML = `
+    <a href="https://github.com/yuyeol3/fin-api-docs" target="_blank" rel="noopener">GitHub 저장소</a>
+    <a href="README.md">마크다운 원문</a>
+    <a href="https://github.com/ApptiveDev/Fin-BE" target="_blank" rel="noopener">Fin-BE</a>`;
+  toc.append(links);
+}
+
+function trackActive(content) {
+  const linkFor = new Map([...document.querySelectorAll('.toc li a')].map(a => [a.getAttribute('href').slice(1), a]));
+  const observer = new IntersectionObserver(entries => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      const a = linkFor.get(e.target.id);
+      if (!a) continue;
+      document.querySelectorAll('.toc a.active').forEach(x => x.classList.remove('active'));
+      a.classList.add('active');
+    }
+  }, { rootMargin: '0px 0px -75% 0px' });
+  content.querySelectorAll('h2[id]').forEach(h => observer.observe(h));
+}
+
+async function render() {
+  const content = document.getElementById('content');
+  try {
+    const readme = await fetchText('README.md');
+    const docPaths = [...new Set([...readme.matchAll(/\]\((docs\/[\w-]+\.md)\)/g)].map(m => m[1]))];
+    const docs = await Promise.all(docPaths.map(fetchText));
+
+    const sections = [`<section id="overview">${marked.parse(readme)}</section>`];
+    docPaths.forEach((path, i) => {
+      const id = path.match(/([\w-]+)\.md$/)[1];
+      sections.push(`<section class="doc" id="${id}">${marked.parse(docs[i])}</section>`);
+    });
+    content.innerHTML = sections.join('') +
+      `<footer>이 페이지는 마크다운 원문을 그대로 렌더링합니다. 수정은 <a href="https://github.com/yuyeol3/fin-api-docs" target="_blank" rel="noopener">저장소</a>의 마크다운에서 합니다.</footer>`;
+  } catch (e) {
+    content.innerHTML = `<p class="status">명세를 불러오지 못했습니다 (${e.message}). 로컬에서는 <code>python -m http.server</code>로 띄워서 엽니다.</p>`;
+    return;
+  }
+
+  content.querySelectorAll('section.doc').forEach(decorateEndpoints);
+  content.querySelectorAll('#overview > h2, #overview > h3').forEach(h => { h.id = slug(h.textContent); });
+  content.querySelectorAll('table').forEach(t => {
+    const wrap = document.createElement('div');
+    wrap.className = 'table-scroll';
+    t.before(wrap);
+    wrap.append(t);
+  });
+  rewriteLinks(content);
+  buildToc(content);
+  trackActive(content);
+
+  if (location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
+}
+
+render();
+</script>
+</body>
+</html>
