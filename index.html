@@ -6,7 +6,7 @@
 <title>Fin API 명세</title>
 <meta name="description" content="Fin 백엔드 HTTP API 명세. 원본은 README.md와 docs/*.md 마크다운입니다.">
 <link rel="alternate" type="text/markdown" href="README.md" title="명세 원문 (Markdown)">
-<link rel="icon" type="image/png" href="assets/logo.png">
+<link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css">
 <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
 <style>
@@ -21,9 +21,6 @@
     --muted: #7A7A7A;
     --line: #E4E4E4;
     --soft: #F7F8F8;
-    --blue: #2C88D9;
-    --orange: #E08A1E;
-    --red: #D3455B;
     --sidebar: 300px;
   }
   * { box-sizing: border-box; }
@@ -49,13 +46,31 @@
     overflow-y: auto;
     font-size: 14px;
   }
-  .brand { display: flex; align-items: center; gap: 10px; margin: 0 8px 28px; }
+  .brand { display: flex; align-items: center; gap: 10px; margin: 0 8px 24px; }
+  .brand:hover { text-decoration: none; }
+  .toc-toggle { display: none; }
   .brand img { height: 28px; }
   .brand span { color: var(--muted); font-size: 13px; font-weight: 500; padding-top: 3px; }
-  .toc .group { margin: 18px 0 4px; padding: 0 10px; font-size: 12px; font-weight: 700; color: var(--strong); letter-spacing: 0.02em; }
-  .toc .group a { color: inherit; padding: 0; }
-  .toc .group a:hover { background: none; color: var(--mint-dark); }
-  .toc ul { list-style: none; margin: 0; padding: 0; }
+
+  /* 접히는 목차 그룹 */
+  .toc details { margin: 1px 0; }
+  .toc summary {
+    list-style: none; display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; border-radius: 6px; cursor: pointer;
+    font-size: 13.5px; font-weight: 700; color: var(--strong);
+  }
+  .toc summary::-webkit-details-marker { display: none; }
+  .toc summary::before {
+    content: ""; flex-shrink: 0; width: 6px; height: 6px; margin: 0 2px;
+    border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted);
+    transform: rotate(-45deg); transition: transform 0.15s;
+  }
+  .toc details[open] > summary::before { transform: rotate(45deg); }
+  .toc summary:hover { background: var(--soft); }
+  .toc summary a { flex: 1; color: inherit; }
+  .toc summary a:hover { color: var(--mint-dark); text-decoration: none; }
+  .toc summary .count { color: var(--muted); font-size: 12px; font-weight: 500; }
+  .toc ul { list-style: none; margin: 2px 0 10px 14px; padding: 0; }
   .toc li { margin: 1px 0; }
   .toc li a {
     display: flex; align-items: center; gap: 8px;
@@ -72,26 +87,49 @@
   .method {
     display: inline-block; min-width: 54px; padding: 2px 0;
     border-radius: 6px; text-align: center;
-    font-size: 12px; font-weight: 700; letter-spacing: 0.02em; color: #fff;
-    background: var(--muted);
+    font-size: 12px; font-weight: 700; letter-spacing: 0.02em;
+    color: #5F5F5F; background: #F0F0F0;
   }
   .toc .method { min-width: 42px; font-size: 10px; padding: 1px 0; flex-shrink: 0; }
-  .method.get { background: var(--mint); }
-  .method.post { background: var(--blue); }
-  .method.put, .method.patch { background: var(--orange); }
-  .method.delete { background: var(--red); }
+  /* 파스텔 배경에 같은 색 계열의 진한 글자 (12px 굵은 글씨에서 대비 4.5:1 이상) */
+  .method.get { color: #017A6B; background: #DDF6F1; }
+  .method.post { color: #22609C; background: #E2EEFA; }
+  .method.put, .method.patch { color: #95550A; background: #FCEEDA; }
+  .method.delete { color: #A82E43; background: #FBE4E8; }
 
   /* 본문 */
   main { margin-left: var(--sidebar); padding: 56px 48px 96px; }
   .wrap { max-width: 860px; margin: 0 auto; }
   h1, h2, h3 { color: var(--strong); letter-spacing: -0.01em; }
-  #overview > h1 { font-size: 32px; line-height: 1.3; margin: 0 0 10px; }
+  /* 랜딩: README의 제목·소개와 문서 목록 카드 */
+  .hero h1 { font-size: 34px; line-height: 1.3; margin: 0 0 10px; }
+  .hero p { font-size: 16.5px; }
+  .hero ul { list-style: none; padding: 0; margin: 12px 0 0; color: var(--muted); font-size: 14px; }
+  .domain-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 12px; margin: 32px 0 0;
+  }
+  .domain-card {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px;
+    color: var(--text); background: #fff;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  }
+  .domain-card:hover {
+    text-decoration: none; border-color: var(--mint);
+    box-shadow: 0 6px 18px rgba(3, 191, 165, 0.12); transform: translateY(-1px);
+  }
+  .domain-card strong { font-size: 16px; }
+  .domain-card .desc { flex: 1; font-size: 13.5px; color: var(--muted); line-height: 1.55; }
+  .domain-card .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
+  .domain-card .meta .method { min-width: 0; padding: 0 6px; font-size: 10px; }
+  .domain-card .meta span:last-child { margin-left: auto; }
   .doc { margin-top: 88px; }
   .doc > h1 {
     font-size: 26px; margin: 0 0 8px; padding-bottom: 10px;
     border-bottom: 2px solid var(--mint);
   }
-  #overview h2 { font-size: 22px; margin: 48px 0 10px; }
+  #overview h2 { font-size: 22px; margin: 80px 0 10px; }
   #overview h3 { font-size: 17px; margin: 28px 0 8px; }
 
   .endpoint { margin: 40px 0 0; padding: 22px 24px 18px; border: 1px solid var(--line); border-radius: 12px; }
@@ -132,8 +170,15 @@
 
   @media (max-width: 900px) {
     .toc { position: static; width: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 20px 16px; }
-    .toc li.ep { display: none; }
-    .brand { margin-bottom: 8px; }
+    .toc-head { display: flex; align-items: center; justify-content: space-between; }
+    .brand { margin: 0 8px; }
+    .toc-toggle {
+      display: block; padding: 6px 14px; border: 1px solid var(--line); border-radius: 8px;
+      background: #fff; color: var(--text); font: inherit; font-size: 13.5px;
+    }
+    .toc.expanded .toc-toggle { color: var(--mint-dark); border-color: var(--mint); }
+    .toc:not(.expanded) > details, .toc:not(.expanded) > .links { display: none; }
+    .toc.expanded .toc-head { margin-bottom: 12px; }
     main { margin-left: 0; padding: 28px 16px 64px; }
     .endpoint { padding: 18px 16px 14px; }
     .doc { margin-top: 64px; }
@@ -142,7 +187,10 @@
 </head>
 <body>
 <nav class="toc" id="toc">
-  <div class="brand"><img src="assets/logo.png" alt="Fin"><span>API 명세</span></div>
+  <div class="toc-head">
+    <a class="brand" href="#"><img src="assets/logo.png" alt="Fin"><span>API 명세</span></a>
+    <button type="button" class="toc-toggle" aria-expanded="false" onclick="this.setAttribute('aria-expanded', document.getElementById('toc').classList.toggle('expanded'))">목차</button>
+  </div>
 </nav>
 <main>
   <div class="wrap" id="content">
@@ -212,40 +260,107 @@ function rewriteLinks(root) {
   }
 }
 
+// README에서 첫 ## 전까지는 히어로로 묶고, `## 문서 목록`의 목록은 도메인 카드로 바꾼다.
+function buildLanding(content) {
+  const overview = content.querySelector('#overview');
+  const hero = document.createElement('header');
+  hero.className = 'hero';
+  overview.prepend(hero);
+  while (hero.nextElementSibling && hero.nextElementSibling.tagName !== 'H2') {
+    hero.append(hero.nextElementSibling);
+  }
+
+  const listHeading = [...overview.querySelectorAll(':scope > h2')].find(h => h.textContent.trim() === '문서 목록');
+  const list = listHeading?.nextElementSibling;
+  if (!list || list.tagName !== 'UL') return;
+
+  const grid = document.createElement('nav');
+  grid.className = 'domain-grid';
+  for (const li of list.children) {
+    const link = li.querySelector('a');
+    const id = link?.getAttribute('href').match(/([\w-]+)\.md$/)?.[1];
+    const section = id && document.getElementById(id);
+    if (!section) continue;
+    const methods = [...section.querySelectorAll('.endpoint > h2')].map(h => h.dataset.method);
+
+    const card = document.createElement('a');
+    card.className = 'domain-card';
+    card.href = `#${id}`;
+    card.innerHTML = '<strong></strong><span class="desc"></span><span class="meta"></span>';
+    card.querySelector('strong').textContent = link.textContent;
+    card.querySelector('.desc').textContent = li.textContent.replace(link.textContent, '').replace(/^\s*:\s*/, '');
+    const meta = card.querySelector('.meta');
+    for (const m of new Set(methods)) {
+      meta.insertAdjacentHTML('beforeend', `<span class="method ${m.toLowerCase()}">${m}</span>`);
+    }
+    meta.insertAdjacentHTML('beforeend', `<span>엔드포인트 ${methods.length}개</span>`);
+    grid.append(card);
+  }
+  hero.append(grid);
+  listHeading.remove();
+  list.remove();
+}
+
+function goTo(id) {
+  document.getElementById(id)?.scrollIntoView();
+  history.pushState(null, '', `#${id}`);
+}
+
+// 그룹마다 <details>로 접는다. 그룹 제목을 누르면 그 위치로 가면서 펼친다.
 function buildToc(content) {
   const toc = document.getElementById('toc');
-  const addGroup = (label, href) => {
-    const div = document.createElement('div');
-    div.className = 'group';
-    div.innerHTML = `<a href="${href}"></a>`;
-    div.firstChild.textContent = label;
-    toc.append(div);
-    const ul = document.createElement('ul');
-    toc.append(ul);
-    return ul;
-  };
-  const addItem = (ul, h2) => {
-    const li = document.createElement('li');
-    const a = document.createElement('a');
-    a.href = `#${h2.id}`;
-    if (h2.dataset.method) {
-      li.className = 'ep';
-      a.innerHTML = `<span class="method ${h2.dataset.method.toLowerCase()}">${h2.dataset.method}</span><code></code>`;
-      a.querySelector('code').textContent = h2.dataset.path;
-    } else {
-      a.textContent = h2.textContent;
+  const addGroup = (label, targetId, headings) => {
+    const details = document.createElement('details');
+    details.innerHTML = '<summary><a></a><span class="count"></span></summary><ul></ul>';
+    const titleLink = details.querySelector('summary a');
+    titleLink.href = `#${targetId}`;
+    titleLink.textContent = label;
+    titleLink.addEventListener('click', e => {
+      e.preventDefault();
+      autoOpen(details);
+      goTo(targetId);
+    });
+    details.querySelector('summary').addEventListener('click', e => {
+      if (e.target !== titleLink) delete details.dataset.auto;
+    });
+    details.querySelector('.count').textContent = headings.length;
+
+    const ul = details.querySelector('ul');
+    for (const h of headings) {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = `#${h.id}`;
+      if (h.dataset.method) {
+        a.innerHTML = `<span class="method ${h.dataset.method.toLowerCase()}">${h.dataset.method}</span><code></code>`;
+        a.querySelector('code').textContent = h.dataset.path;
+      } else {
+        a.textContent = h.textContent;
+      }
+      li.append(a);
+      ul.append(li);
     }
-    li.append(a);
-    ul.append(li);
+    toc.append(details);
   };
 
-  const overview = content.querySelector('#overview');
-  const ovList = addGroup('개요', '#overview');
-  overview.querySelectorAll(':scope > h2').forEach(h2 => addItem(ovList, h2));
+  // README의 ## 절(공통 규칙)은 그 아래 ### 들을 항목으로 둔다.
+  content.querySelectorAll('#overview > h2').forEach(h2 => {
+    const subs = [];
+    for (let n = h2.nextElementSibling; n && n.tagName !== 'H2'; n = n.nextElementSibling) {
+      if (n.tagName === 'H3') subs.push(n);
+    }
+    addGroup(h2.textContent, h2.id, subs);
+  });
 
   content.querySelectorAll('section.doc').forEach(sec => {
-    const ul = addGroup(sec.querySelector('h1').textContent, `#${sec.id}`);
-    sec.querySelectorAll('.endpoint > h2').forEach(h2 => addItem(ul, h2));
+    addGroup(sec.querySelector('h1').textContent, sec.id, [...sec.querySelectorAll('.endpoint > h2')]);
+  });
+
+  // 모바일에서 펼친 목차는 항목으로 이동하면 다시 접는다.
+  toc.addEventListener('click', e => {
+    if (e.target.closest('details a, .brand')) {
+      toc.classList.remove('expanded');
+      toc.querySelector('.toc-toggle').setAttribute('aria-expanded', 'false');
+    }
   });
 
   const links = document.createElement('div');
@@ -266,9 +381,18 @@ function trackActive(content) {
       if (!a) continue;
       document.querySelectorAll('.toc a.active').forEach(x => x.classList.remove('active'));
       a.classList.add('active');
+      autoOpen(a.closest('details'));
     }
   }, { rootMargin: '0px 0px -75% 0px' });
-  content.querySelectorAll('h2[id]').forEach(h => observer.observe(h));
+  for (const id of linkFor.keys()) observer.observe(document.getElementById(id));
+}
+
+// 스크롤 위치에 따라 연 그룹은 다음 그룹이 열릴 때 다시 접는다. 직접 연 그룹은 그대로 둔다.
+function autoOpen(group) {
+  for (const g of document.querySelectorAll('.toc details[data-auto]')) {
+    if (g !== group) { g.open = false; delete g.dataset.auto; }
+  }
+  if (!group.open) { group.open = true; group.dataset.auto = ''; }
 }
 
 async function render() {
@@ -291,6 +415,7 @@ async function render() {
   }
 
   content.querySelectorAll('section.doc').forEach(decorateEndpoints);
+  buildLanding(content);
   content.querySelectorAll('#overview > h2, #overview > h3').forEach(h => { h.id = slug(h.textContent); });
   content.querySelectorAll('table').forEach(t => {
     const wrap = document.createElement('div');
@@ -301,8 +426,17 @@ async function render() {
   rewriteLinks(content);
   buildToc(content);
   trackActive(content);
+  // 랜딩 카드처럼 도메인으로 바로 가는 링크를 누르면 그 그룹을 연다.
+  const openGroupForHash = () => {
+    const link = [...document.querySelectorAll('.toc summary a')].find(a => a.getAttribute('href') === location.hash);
+    if (link) autoOpen(link.closest('details'));
+  };
+  window.addEventListener('hashchange', openGroupForHash);
 
-  if (location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();
+  if (location.hash) {
+    document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView({ behavior: 'instant' });
+    openGroupForHash();
+  }
 }
 
 render();
