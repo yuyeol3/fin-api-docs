@@ -2,6 +2,8 @@
 
 약관은 버전별로 관리하고, 동의도 버전 단위로 기록합니다. 조회하면 약관마다 현재 버전 하나가 나오며, 같은 약관의 같은 주 버전(major)에 동의한 기록이 있으면 동의한 것으로 봅니다. 부 버전(minor)만 바뀐 개정은 다시 동의하지 않아도 됩니다.
 
+개인정보 수집·이용 동의(`PRIVACY_POLICY`)는 Fin-BE V12 마이그레이션에서 v2.0으로 개정되었습니다. 주 버전이 올라갔으므로 v1.0에 동의한 회원도 `agreed`가 `false`가 되고, 다시 동의하기 전에 재발급받은 액세스 토큰으로는 `약관 동의` 엔드포인트를 쓸 수 없습니다. 새 버전의 `effectiveFrom`은 마이그레이션이 적용된 시각입니다.
+
 필수 약관에 모두 동의하면 회원 역할이 `RECOMMENDATION`으로 바뀝니다. 새 권한은 [POST /auth/refresh](auth.md#post-auth-refresh)로 액세스 토큰을 다시 받아야 적용됩니다.
 
 이 문서의 엔드포인트는 응답을 `data`로 감싸지 않습니다.
@@ -48,7 +50,7 @@
 | 필드 | 타입 | 설명 |
 |---|---|---|
 | `[].id` | number | 약관 ID |
-| `[].versionId` | number | 현재 버전 ID. 동의를 보낼 때 이 값을 씁니다. |
+| `[].versionId` | number | 현재 버전 ID. 동의를 보낼 때 이 값을 씁니다. 개정된 약관은 `id`와 값이 다릅니다(마이그레이션을 처음부터 적용한 DB에서 개인정보 v2.0은 `id` 2, `versionId` 5). |
 | `[].code` | string | 약관 코드. 현재 데이터는 `SERVICE_TERMS`, `PRIVACY_POLICY`, `LOCATION_SERVICE_TERMS`, `MARKETING_TERMS` |
 | `[].title` | string | 약관 제목 |
 | `[].content` | string | 약관 본문. 현재 데이터는 마크다운 문법(굵게, 목록, 표)으로 쓰여 있습니다. |
@@ -66,7 +68,7 @@
 
 | 위치 | 이름 | 타입 | 필수 | 설명 |
 |---|---|---|---|---|
-| body | `agreements` | array<object> | O | 동의 결과 목록. 빈 배열도 받습니다. |
+| body | `agreements` | array<object> | O | 동의 결과 목록. 빈 배열도 받지만 필드를 빼거나 `null`이면 `C003`입니다. |
 | body | `agreements[].versionId` | number | O | 약관 버전 ID. [GET /term](#get-term)의 `versionId` |
 | body | `agreements[].agreed` | boolean | O | `true`면 동의, `false`면 동의 철회 |
 
@@ -74,7 +76,7 @@
 {
   "agreements": [
     { "versionId": 1, "agreed": true },
-    { "versionId": 2, "agreed": true },
+    { "versionId": 5, "agreed": true },
     { "versionId": 3, "agreed": false },
     { "versionId": 4, "agreed": true }
   ]

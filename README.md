@@ -2,7 +2,7 @@
 
 Fin 백엔드([ApptiveDev/Fin-BE](https://github.com/ApptiveDev/Fin-BE))가 제공하는 HTTP API 명세입니다.
 
-- 기준 커밋: `22b7db5` (Fin-BE `main`, 2026-11-20)
+- 기준 커밋: `d21a882` (Fin-BE `main`, 2026-11-26)
 - 개발 서버: `https://test-fin.duckdns.org`
 
 ## 문서 목록

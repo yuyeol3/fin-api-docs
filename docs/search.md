@@ -20,7 +20,7 @@
 | 조건 | 목돈만들기, 상품 상세 | 단기예치 |
 |---|---|---|
 | 토큰 | 유효한 액세스 토큰, 권한 `RECOMMENDATION` 또는 `ADMIN` (약관 동의) | 같음 |
-| 저축기간 옵션 | 선택 | 선택 |
+| 대분류 입력 | 저축기간 옵션을 고르거나 `category`를 보냄. 상품 상세는 `category`를 받지 않으므로 저축기간 옵션 | 같음 |
 | 은행 우대 조건 옵션 (`categoryId` 6) | 1개 이상 | 1개 이상 |
 | 금액 | `monthlySavingsGoal` 있음 | `depositAmount`가 0보다 큼 |
 | 거래 이력 | `neverUsedBanks`, `maturedSavingBanks`가 null이 아님 (빈 배열은 입력한 것으로 봄) | 같음 |
@@ -111,16 +111,18 @@
 
 ## POST /search/products
 
-1단계, 2단계 입력으로 가입 가능한 상품을 찾아 추천 목록을 만듭니다. 저축기간에 따라 대분류가 정해지고, 대분류별로 채우는 필드가 다릅니다.
+1단계, 2단계 입력으로 가입 가능한 상품을 찾아 추천 목록을 만듭니다. 대분류는 `category`를 보내면 그 값, 보내지 않으면 저축기간 옵션으로 정하고, 대분류별로 채우는 필드가 다릅니다.
 
 - 인증: 공개 (토큰이 있고 개인화 조건을 만족하면 개인화 지표를 채웁니다. 문서 첫머리의 조건 표 참고)
 
 | 대분류 | 조건 | 채우는 필드 |
 |---|---|---|
-| `LONG_TERM` (목돈만들기) | 저축기간이 6개월 이상이거나 선택하지 않음 | `governmentRanked`, `bankRanked`, `governmentTop3`, `bankTop3`, `governmentRateRanked`, `bankRateRanked`, `subscriptionProducts`, `productCardSummaries` |
-| `SHORT_TERM` (단기예치) | 저축기간 1개월 또는 3개월 | `parkingProducts`, `depositSavingsProducts`, `productCardSummaries`(항상 빈 배열) |
+| `LONG_TERM` (목돈만들기) | `category`가 `LONG_TERM`, 또는 `category` 없이 저축기간 6개월 이상 | `governmentRanked`, `bankRanked`, `governmentTop3`, `bankTop3`, `governmentRateRanked`, `bankRateRanked`, `subscriptionProducts`, `productCardSummaries` |
+| `SHORT_TERM` (단기예치) | `category`가 `SHORT_TERM`, 또는 `category` 없이 저축기간 1개월이나 3개월 | `parkingProducts`, `depositSavingsProducts`, `productCardSummaries`(항상 빈 배열) |
 
-다른 대분류의 목록 필드는 null입니다.
+다른 대분류의 목록 필드는 null입니다. `category`도 저축기간 옵션도 없으면 `S005`입니다.
+
+`category`는 결과 화면에서 대분류를 바꿀 때 보냅니다. 바꾸기 전에 응답의 `needsDepositAmount`, `needsMonthlySavingsGoal`을 보고 모자란 금액을 먼저 입력받습니다. 고른 저축기간이 `category`와 맞지 않으면(예: 12개월을 고르고 `SHORT_TERM`) 저축기간을 고르지 않은 것으로 봅니다. 이때 적합도의 저축기간 축은 입력하지 않은 축이 되고, 단기예치는 1개월, 3개월 옵션을 모두, 목돈만들기는 저축기간이 6개월 이상이거나 없는 옵션만 후보로 씁니다.
 
 ### 요청
 
@@ -129,6 +131,7 @@
 | body | `options` | array<object> | O | 1단계에서 고른 옵션. 빈 배열도 됩니다. |
 | body | `options[].categoryId` | number | O | 옵션이 속한 카테고리 ID |
 | body | `options[].optionId` | number | O | 옵션 ID |
+| body | `category` | string | X | 대분류. `LONG_TERM` 또는 `SHORT_TERM`. 결과 화면에서 대분류를 바꿀 때만 보내고, 없으면 저축기간 옵션으로 정합니다. |
 | body | `detailedOptions` | object | O | 2단계 입력. 빈 객체 `{}`도 됩니다. |
 | body | `detailedOptions.birthdate` | string (yyyy-MM-dd) | X | 생년월일. 오늘(KST) 기준 만 나이로 상품의 나이 조건을 거릅니다. |
 | body | `detailedOptions.annualIncome` | number | X | 연소득(원). 상품의 소득 상한보다 많으면 제외합니다. `0`이면 소득 증빙이 어려운 것으로 보고 소득 요건(소득 상한이나 중위소득 비율)이 있는 상품을 모두 제외합니다. |
@@ -150,7 +153,7 @@
 - 키워드와 연결된 옵션인데 `categoryId`가 1~6이 아니거나 옵션의 실제 카테고리와 다르면 `S001`입니다.
 - 저축기간 옵션은 하나만 반영합니다. 여러 개를 보내면 마지막 값을 씁니다.
 - 상품관심사(`categoryId` 5) 옵션은 무시합니다.
-- 목록에서 숨긴 옵션도 ID로 보내면 반영합니다. 범위형 저축기간 `3년 이상`(`TERM_OVER_3_YEARS`)은 60개월로 환산되어 `S009`가 납니다.
+- 목록에서 숨긴 옵션도 ID로 보내면 반영합니다. 범위형 저축기간 `3년 이상`(`TERM_OVER_3_YEARS`)은 60개월로 환산되어 `S009`가 납니다. `category`가 `SHORT_TERM`이면 대분류와 맞지 않는 기간이라 무시되고 오류가 나지 않습니다.
 
 ```json
 {
@@ -181,7 +184,7 @@
 
 `200 OK`. `data`로 감싸지 않고 그대로 반환합니다.
 
-목돈만들기 예시입니다(비로그인).
+목돈만들기 예시입니다(비로그인). 위 요청처럼 `depositAmount`를 보내지 않아 `needsDepositAmount`가 `true`입니다.
 
 ```json
 {
@@ -269,12 +272,12 @@
     }
   ],
   "eligibleProductCount": 95,
-  "needsDepositAmount": false,
+  "needsDepositAmount": true,
   "needsMonthlySavingsGoal": false
 }
 ```
 
-단기예치 예시입니다(비로그인, 저축기간 3개월, `depositAmount` 3,000,000원).
+단기예치 예시입니다(비로그인, 저축기간 3개월, `depositAmount` 3,000,000원, `monthlySavingsGoal` 없음).
 
 ```json
 {
@@ -335,7 +338,7 @@
   "productCardSummaries": [],
   "eligibleProductCount": 76,
   "needsDepositAmount": false,
-  "needsMonthlySavingsGoal": false
+  "needsMonthlySavingsGoal": true
 }
 ```
 
@@ -351,7 +354,7 @@
 | `tabs.tabDEnabled` | boolean | 단기예치 파킹통장 탭. 단기예치면 `true`, 목돈만들기면 `false` |
 | `governmentRanked` | array<object> | 정부 상품 적합도순 목록 (목돈만들기) |
 | `governmentRanked[].productId` | number | 상품 ID |
-| `governmentRanked[].productPropertyId` | number | 점수를 매긴 옵션 ID. 상품마다 점수가 가장 높은 옵션 하나만 나옵니다. |
+| `governmentRanked[].productPropertyId` | number | 점수를 매긴 옵션 ID. 상품마다 옵션 하나만 나오며, 목록 정렬 규칙(`totalScore`, `tieBreaker`, 상품 이름)으로 가장 앞서는 옵션을 고릅니다. |
 | `governmentRanked[].productName` | string | 상품 이름. 공시 원문 끝의 괄호 표기(예: `(정액적립식)`)는 뗍니다. |
 | `governmentRanked[].providerName` | string | 금융사(기관) 이름 |
 | `governmentRanked[].source` | string | `ONTONG` 또는 `FSS` |
@@ -377,7 +380,7 @@
 | `governmentRateRanked[].isSubscription` | boolean | 청약 상품 여부 |
 | `governmentRateRanked[].subscriptionNote` | string | 청약 상품이면 `"청약: 금리 비교 대상 아님"`, 아니면 null |
 | `governmentRateRanked[].netReturn` | number | 세후 실수령액(원). 은행 상품은 원금 + 이자 - 이자소득세(15.4%), 정부 상품은 본인 납입 원금 + 예상 기여금(비과세). 계산할 수 없으면 null |
-| `governmentRateRanked[].principal` | number | 원금(원). 예금은 `depositAmount`, 적금과 정부 상품은 월 납입액(`monthlySavingsGoal`과 상품 월 한도 중 작은 값) × 기간. 계산할 수 없으면 null |
+| `governmentRateRanked[].principal` | number | 원금(원). 은행 상품은 아래 "실수령액 계산의 원금"과 같은 금액(적금은 월 납입액 × 옵션의 저축기간)이고, 정부 상품은 월 납입액(`monthlySavingsGoal`과 상품 월 한도 중 작은 값) × 기간. 계산할 수 없으면 null |
 | `governmentRateRanked[].saveTrm` | number | 기간(개월). 은행 상품은 옵션의 저축기간, 정부 상품은 기여 기간. 청약 상품이면 null |
 | `governmentRateRanked[].productType` | string | 상품 유형. `DEPOSIT`, `SAVING`, `PARKING`, `POLICY`, `SUBSCRIPTION` 중 하나. 청약 상품이면 null |
 | `governmentRateRanked[].expectedTotalContribution` | number | 예상 만기 기여금 총액(원). 정부 상품만 채우고, 계산할 수 없거나 은행 상품이면 null |
@@ -417,9 +420,9 @@
 | `productCardSummaries[].expectedTotalContribution` | number | 예상 만기 기여금 총액(원). 정부 상품(청약 제외)이고 `tabBEnabled`가 `true`일 때만 채웁니다. |
 | `productCardSummaries[].effectiveMonthlyDeposit` | number | 실제 반영되는 본인 월 납입액(원). `monthlySavingsGoal`과 상품 월 한도 중 작은 값. 채우는 조건은 위와 같습니다. |
 | `productCardSummaries[].contributionPeriodMonths` | number | 기여 기간(개월). 채우는 조건은 위와 같습니다. |
-| `eligibleProductCount` | number | 가입 가능한 상품 수. 목돈만들기는 정부와 은행 상품 수, 단기예치는 저축기간이 맞는 은행 예적금 상품 수와 파킹통장 상품 수의 합 |
-| `needsDepositAmount` | boolean | 항상 `false` |
-| `needsMonthlySavingsGoal` | boolean | 항상 `false` |
+| `eligibleProductCount` | number | 가입 가능한 상품 수. 목돈만들기는 정부와 은행 상품 수, 단기예치는 저축기간이 맞는(고른 기간이 없으면 1개월, 3개월) 은행 예적금 상품 수와 파킹통장 상품 수의 합 |
+| `needsDepositAmount` | boolean | 단기예치로 바꾸려면 예치 희망액을 더 입력받아야 하는지. 목돈만들기 결과에서 `depositAmount`가 없거나 0 이하면 `true`. 단기예치 결과에서는 항상 `false` |
+| `needsMonthlySavingsGoal` | boolean | 목돈만들기로 바꾸려면 월 저축 가능액을 더 입력받아야 하는지. 단기예치 결과에서 `monthlySavingsGoal`이 없으면 `true`. 목돈만들기 결과에서는 항상 `false` |
 
 목돈만들기 동작입니다.
 
@@ -430,12 +433,17 @@
 - `governmentRateRanked`는 비교 가능한 정부 상품(청약 제외)을 예상 기여금 총액, 수익률, 이름 순으로 정렬합니다. `bankRateRanked`는 세후 실수령액, 금리, 이름 순입니다. 둘 다 상품마다 옵션 하나만 남깁니다.
 - 개인화가 켜지면 은행 우대 조건 점수에 첫거래, 재예치 우대(거래 이력 기반)도 반영합니다.
 
-실수령액 계산의 원금은 이렇게 잡습니다. 은행 예금은 단기예치면 `depositAmount`, 목돈만들기면 `monthlySavingsGoal` × 고른 저축기간입니다. 은행 적금은 월 납입액(단기예치면 `depositAmount` ÷ 고른 저축기간, 목돈만들기면 `monthlySavingsGoal`)과 상품 월 한도 중 작은 값을 옵션의 저축기간만큼 넣는 것으로 봅니다. 이자는 옵션의 단리, 복리 구분에 따라 계산합니다.
+실수령액 계산의 원금은 이렇게 잡습니다. 아래의 기준 기간은 고른 저축기간이 대분류에 속하면 그 기간이고, 고르지 않았거나 대분류와 맞지 않으면 옵션의 저축기간입니다.
+
+- 은행 예금: 단기예치면 `depositAmount`, 목돈만들기면 `monthlySavingsGoal` × 기준 기간
+- 은행 적금: 월 납입액(단기예치면 `depositAmount` ÷ 기준 기간, 목돈만들기면 `monthlySavingsGoal`)과 상품 월 한도 중 작은 값을 옵션의 저축기간만큼 넣는 것으로 봅니다.
+
+이자는 옵션의 단리, 복리 구분에 따라 계산합니다. 가입 가능 여부를 볼 때의 최소 납입액(예금은 최소 예치액)도 같은 금액으로 확인합니다.
 
 단기예치 동작입니다.
 
 - `parkingProducts`는 가입 가능한 파킹통장 옵션 전체에서 만 17세 미만(생년월일을 보낸 경우), 상품 나이 조건, 최소 예치액(`depositAmount` 기준)으로 거른 뒤 최고금리, 기본금리, 이름 순으로 정렬합니다. 저축기간과 은행 우대 조건은 보지 않습니다.
-- `depositSavingsProducts`는 가입 가능한 은행 옵션 중 저축기간이 고른 기간과 같고 실수령액을 계산할 수 있는 것만 남겨, 상품마다 실수령액이 가장 큰 옵션 하나를 실수령액, 금리, 이름 순으로 정렬합니다. 비로그인이어도 정렬은 실수령액 기준이고 값만 가립니다.
+- `depositSavingsProducts`는 가입 가능한 은행 옵션 중 저축기간이 고른 기간과 같고(고른 기간이 없으면 1개월이나 3개월) 실수령액을 계산할 수 있는 것만 남겨, 상품마다 실수령액이 가장 큰 옵션 하나를 실수령액, 금리, 이름 순으로 정렬합니다. 비로그인이어도 정렬은 실수령액 기준이고 값만 가립니다.
 
 ### 오류
 
@@ -445,7 +453,7 @@
 |---|---|---|
 | 404 | `S001` | 옵션의 `categoryId`가 1~6이 아니거나 옵션의 실제 카테고리와 다른 경우 |
 | 400 | `S004` | 목돈만들기인데 `monthlySavingsGoal`이 없는 경우 |
-| 400 | `S005` | 목돈만들기인데 저축기간 옵션을 고르지 않은 경우 |
+| 400 | `S005` | `category`를 보내지 않았고 저축기간 옵션도 고르지 않은 경우 |
 | 400 | `S009` | 저축기간이 1, 3, 6, 12, 24, 36개월이 아닌 경우 (숨긴 범위형 옵션 `3년 이상`을 보낸 경우) |
 | 400 | `S006` | 목돈만들기인데 은행 우대 조건 옵션을 하나도 고르지 않은 경우 |
 | 400 | `S007` | 단기예치인데 `depositAmount`가 없거나 0 이하인 경우 |
