@@ -50,14 +50,14 @@
 
 | 위치 | 이름 | 타입 | 필수 | 설명 |
 |---|---|---|---|---|
-| body | `email` | string | X | 새 이메일 |
-| body | `name` | string | X | 새 이름 |
+| body | `email` | string | X | 새 이메일. 이메일 형식이어야 합니다. 빈 문자열은 형식 검사를 통과합니다. |
+| body | `name` | string | X | 새 이름. 보낼 때는 공백이 아닌 글자가 하나 이상 있어야 합니다. |
 
 ```json
 { "name": "김핀" }
 ```
 
-형식 검사(이메일 형식, 빈 문자열)는 하지 않습니다. 이메일은 다른 회원과 겹치는지만 확인하며, 지금 내 이메일과 같은 값을 보내도 중복으로 처리합니다.
+형식 검사에 걸리면 `C003`이고, `message`는 `올바른 이메일 형식이 아닙니다.` 또는 `이름은 공백일 수 없습니다.`입니다. 이메일은 지금 내 이메일과 다를 때만 다른 회원과 겹치는지 확인합니다. 내 이메일과 같은 값을 보내면 아무것도 바꾸지 않고 성공합니다.
 
 ### 응답
 
@@ -68,7 +68,7 @@
 | 상태 | 코드 | 상황 |
 |---|---|---|
 | 404 | `U001` | 토큰의 회원이 없는 경우 |
-| 409 | `U002` | 보낸 `email`을 이미 사용하는 회원이 있는 경우 (내 현재 이메일 포함) |
+| 409 | `U002` | 보낸 `email`을 다른 회원이 이미 사용하는 경우 |
 
 ## DELETE /user/me
 
@@ -118,6 +118,7 @@
   "isHomeless": true,
   "isHouseholder": true,
   "monthlySavingsGoal": 500000,
+  "depositAmount": 3000000,
   "neverUsedBanks": ["0011625"],
   "maturedSavingBanks": ["0010001"],
   "selectedOptionIds": [1, 32],
@@ -148,6 +149,7 @@
   "isHomeless": null,
   "isHouseholder": null,
   "monthlySavingsGoal": null,
+  "depositAmount": null,
   "neverUsedBanks": null,
   "maturedSavingBanks": null,
   "selectedOptionIds": null,
@@ -166,7 +168,8 @@
 | `isFirstJob` | boolean | 첫 직장 여부 |
 | `isHomeless` | boolean | 무주택 여부 |
 | `isHouseholder` | boolean | 세대주 여부 |
-| `monthlySavingsGoal` | number | 월 저축 가능액(원) |
+| `monthlySavingsGoal` | number | 월 저축 가능액(원). 목돈만들기 금액 |
+| `depositAmount` | number | 예치 희망액(원). 단기예치 금액 |
 | `neverUsedBanks` | array<string> | 첫거래 대상 은행 코드 목록 |
 | `maturedSavingBanks` | array<string> | 재예치 대상 은행 코드 목록 |
 | `selectedOptionIds` | array<number> | 선택한 카테고리 옵션 ID 목록 |
@@ -196,7 +199,8 @@
 | body | `isFirstJob` | boolean | X | 첫 직장 여부 |
 | body | `isHomeless` | boolean | X | 무주택 여부 |
 | body | `isHouseholder` | boolean | X | 세대주 여부 |
-| body | `monthlySavingsGoal` | number | X | 월 저축 가능액(원) |
+| body | `monthlySavingsGoal` | number | X | 월 저축 가능액(원). 목돈만들기 금액 |
+| body | `depositAmount` | number | X | 예치 희망액(원). 단기예치 금액 |
 | body | `neverUsedBanks` | array<string> | X | 거래한 적 없는 은행 코드 목록(첫거래 대상). 코드는 [GET /providers/banks](provider.md#get-providers-banks) 기준 |
 | body | `maturedSavingBanks` | array<string> | X | 만기 예적금이 있는 은행 코드 목록(재예치 대상) |
 | body | `selectedOptionIds` | array<number> | X | 선택한 카테고리 옵션 ID 목록. [GET /api/categories](category.md#get-api-categories)의 `optionId` |
@@ -212,6 +216,7 @@
   "isHomeless": true,
   "isHouseholder": true,
   "monthlySavingsGoal": 500000,
+  "depositAmount": 3000000,
   "neverUsedBanks": ["0011625"],
   "maturedSavingBanks": ["0010001"],
   "selectedOptionIds": [1, 32]

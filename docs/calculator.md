@@ -15,7 +15,7 @@
 | body | `productPropertyId` | number | O | 상품 옵션 ID. 금리와 금액 상한을 검증하는 기준입니다. |
 | body | `productType` | string | O | `DEPOSIT`(예금), `SAVING`(적금). 열거형에는 `PARKING`, `POLICY`, `SUBSCRIPTION`도 있지만 계산기는 지원하지 않아 400을 반환합니다. |
 | body | `interestRateType` | string | O | `SINGLE_INTEREST`(단리), `COMPOUND_INTEREST`(복리) |
-| body | `reserveType` | string | X | `FIXED`(정액적립식), `FREE`(자유적립식). `productType`이 `SAVING`이면 필수입니다. 계산 결과에는 영향을 주지 않습니다. |
+| body | `reserveType` | string | X | `FIXED`(정액적립식), `FREE`(자유적립식). 받기만 하고 쓰지 않습니다. 적금은 적립 방식과 관계없이 매월 초 같은 금액을 넣는 것으로 계산합니다. |
 | body | `appliedRate` | number | O | 적용 연이율. 소수로 보냅니다(3.5%는 `0.035`). 0 이상이고, 옵션의 최고금리를 넘을 수 없습니다. |
 | body | `amount` | number | O | 예금은 예치금, 적금은 월 납입액(원). 10,000 이상이고, 옵션의 한도를 넘을 수 없습니다. |
 | body | `saveTrm` | number | O | 저축 기간(개월). 1 이상 |
@@ -87,7 +87,6 @@
 | 상태 | 코드 | 상황 |
 |---|---|---|
 | 400 | `C003` | `productPropertyId`에 해당하는 옵션이 없는 경우. `존재하지 않는 상품 옵션입니다: {id}` |
-| 400 | `C003` | `SAVING`인데 `reserveType`이 없는 경우. `적금 계산기는 reserveType(적립 방식: 정액 또는 자유)이 필요합니다.` |
 | 400 | `C003` | 적용 금리가 옵션 최고금리를 넘는 경우. `적용 금리가 상품 최고금리를 초과합니다. 최고금리: {최고금리}%` |
 | 400 | `C003` | 금액이 옵션 한도를 넘는 경우. `금액이 상품 최대 한도를 초과합니다. 최대 한도: {한도}원` |
 | 400 | `C003` | `productType`이 `DEPOSIT`, `SAVING`이 아닌 경우. `지원하지 않는 상품 타입입니다: {productType}` |
