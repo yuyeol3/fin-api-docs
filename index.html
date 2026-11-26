@@ -124,7 +124,6 @@
   .domain-card .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
   .domain-card .meta .method { min-width: 0; padding: 0 6px; font-size: 10px; }
   .domain-card .meta span:last-child { margin-left: auto; }
-  .doc { margin-top: 88px; }
   .doc > h1 {
     font-size: 26px; margin: 0 0 8px; padding-bottom: 10px;
     border-bottom: 2px solid var(--mint);
@@ -181,7 +180,6 @@
     .toc.expanded .toc-head { margin-bottom: 12px; }
     main { margin-left: 0; padding: 28px 16px 64px; }
     .endpoint { padding: 18px 16px 14px; }
-    .doc { margin-top: 64px; }
   }
 </style>
 </head>
@@ -302,8 +300,8 @@ function buildLanding(content) {
 }
 
 function goTo(id) {
-  document.getElementById(id)?.scrollIntoView();
-  history.pushState(null, '', `#${id}`);
+  if (decodeURIComponent(location.hash.slice(1)) === id) showRoute();
+  else location.hash = id;
 }
 
 // 그룹마다 <details>로 접는다. 그룹 제목을 누르면 그 위치로 가면서 펼친다.
@@ -426,17 +424,23 @@ async function render() {
   rewriteLinks(content);
   buildToc(content);
   trackActive(content);
-  // 랜딩 카드처럼 도메인으로 바로 가는 링크를 누르면 그 그룹을 연다.
-  const openGroupForHash = () => {
-    const link = [...document.querySelectorAll('.toc summary a')].find(a => a.getAttribute('href') === location.hash);
-    if (link) autoOpen(link.closest('details'));
-  };
-  window.addEventListener('hashchange', openGroupForHash);
+  window.addEventListener('hashchange', showRoute);
+  showRoute();
+}
 
-  if (location.hash) {
-    document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView({ behavior: 'instant' });
-    openGroupForHash();
-  }
+// 주소 해시가 가리키는 요소가 든 문서(랜딩 또는 도메인 하나)만 보여준다.
+// 해시가 없거나 없는 id면 랜딩을 보여준다.
+function showRoute() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  const target = id ? document.getElementById(id) : null;
+  const section = target?.closest('#overview, section.doc') ?? document.getElementById('overview');
+  document.querySelectorAll('#overview, section.doc').forEach(s => { s.hidden = s !== section; });
+
+  if (target && target !== section) target.scrollIntoView({ behavior: 'instant' });
+  else window.scrollTo({ top: 0, behavior: 'instant' });
+
+  const groupLink = document.querySelector(`.toc summary a[href="#${section.id}"]`);
+  if (groupLink) autoOpen(groupLink.closest('details'));
 }
 
 render();
