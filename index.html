@@ -177,8 +177,6 @@
   .pager span { color: var(--muted); font-size: 13px; font-weight: 500; }
   .pager .next { grid-column: 2; text-align: right; }
 
-  footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
-
   @media (max-width: 900px) {
     .toc { position: static; width: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 20px 16px; }
     .toc-head { display: flex; align-items: center; justify-content: space-between; }
@@ -438,8 +436,7 @@ async function render() {
       const id = path.match(/([\w-]+)\.md$/)[1];
       sections.push(`<section class="doc" id="${id}">${marked.parse(docs[i])}</section>`);
     });
-    content.innerHTML = sections.join('') +
-      `<footer>이 페이지는 마크다운 원문을 그대로 렌더링합니다. 수정은 <a href="https://github.com/yuyeol3/fin-api-docs" target="_blank" rel="noopener">저장소</a>의 마크다운에서 합니다.</footer>`;
+    content.innerHTML = sections.join('');
   } catch (e) {
     content.innerHTML = `<p class="status">명세를 불러오지 못했습니다 (${e.message}). 로컬에서는 <code>python -m http.server</code>로 띄워서 엽니다.</p>`;
     return;
