@@ -165,6 +165,18 @@
   .status { color: var(--muted); }
   .status a { color: var(--mint-dark); }
 
+  /* 문서 끝의 이전/다음 문서 링크 */
+  .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 64px; }
+  .pager a {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 14px 18px; border: 1px solid var(--line); border-radius: 12px;
+    color: var(--strong); font-weight: 650;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .pager a:hover { text-decoration: none; border-color: var(--mint); box-shadow: 0 6px 18px rgba(3, 191, 165, 0.12); }
+  .pager span { color: var(--muted); font-size: 13px; font-weight: 500; }
+  .pager .next { grid-column: 2; text-align: right; }
+
   footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
 
   @media (max-width: 900px) {
@@ -180,6 +192,8 @@
     .toc.expanded .toc-head { margin-bottom: 12px; }
     main { margin-left: 0; padding: 28px 16px 64px; }
     .endpoint { padding: 18px 16px 14px; }
+    .pager { grid-template-columns: 1fr; }
+    .pager .next { grid-column: 1; }
   }
 </style>
 </head>
@@ -299,6 +313,25 @@ function buildLanding(content) {
   list.remove();
 }
 
+// 랜딩과 도메인 문서를 문서 목록 순서로 잇는 이전/다음 링크를 각 문서 끝에 붙인다.
+function addPagers(content) {
+  const sections = [...content.querySelectorAll('#overview, section.doc')];
+  sections.forEach((sec, i) => {
+    const pager = document.createElement('nav');
+    pager.className = 'pager';
+    for (const [other, cls, label] of [[sections[i - 1], 'prev', '← 이전'], [sections[i + 1], 'next', '다음 →']]) {
+      if (!other) continue;
+      const a = document.createElement('a');
+      a.className = cls;
+      a.href = `#${other.id}`;
+      a.innerHTML = `<span>${label}</span>`;
+      a.append(other.querySelector('h1').textContent);
+      pager.append(a);
+    }
+    sec.append(pager);
+  });
+}
+
 function goTo(id) {
   if (decodeURIComponent(location.hash.slice(1)) === id) showRoute();
   else location.hash = id;
@@ -414,6 +447,7 @@ async function render() {
 
   content.querySelectorAll('section.doc').forEach(decorateEndpoints);
   buildLanding(content);
+  addPagers(content);
   content.querySelectorAll('#overview > h2, #overview > h3').forEach(h => { h.id = slug(h.textContent); });
   content.querySelectorAll('table').forEach(t => {
     const wrap = document.createElement('div');
