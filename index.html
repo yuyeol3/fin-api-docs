@@ -80,6 +80,32 @@
   .toc li a:hover { color: var(--strong); background: var(--soft); text-decoration: none; }
   .toc li a.active { color: var(--mint-dark); background: var(--mint-soft); font-weight: 600; }
   .toc li a code { font-family: inherit; font-size: 13px; background: none; padding: 0; overflow-wrap: anywhere; color: inherit; }
+  /* 전체 문서 검색 */
+  .search { position: relative; margin: 0 0 16px; }
+  .search input {
+    width: 100%; padding: 8px 36px 8px 12px;
+    border: 1px solid var(--line); border-radius: 8px;
+    background: var(--soft); color: var(--strong); font: inherit; font-size: 14px;
+  }
+  .search input:focus { outline: none; border-color: var(--mint); background: #fff; box-shadow: 0 0 0 3px var(--mint-soft); }
+  .search kbd {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    padding: 0 6px; border: 1px solid var(--line); border-radius: 4px;
+    background: #fff; color: var(--muted); font-family: inherit; font-size: 11.5px; pointer-events: none;
+  }
+  .search input:focus + kbd, .search input:not(:placeholder-shown) + kbd { display: none; }
+  .toc.searching > details, .toc.searching > .links { display: none; }
+  .search-results { list-style: none; margin: 0; padding: 0; }
+  .search-results li { margin: 1px 0; }
+  .toc .search-results a { flex-direction: column; align-items: stretch; gap: 2px; padding: 8px 10px; border-radius: 8px; color: var(--text); }
+  .toc .search-results a:hover, .toc .search-results a:focus-visible { background: var(--soft); text-decoration: none; }
+  .toc .search-results li:first-child a { background: var(--mint-soft); }
+  .search-results .r-head { display: flex; align-items: center; gap: 8px; color: var(--strong); font-weight: 600; }
+  .search-results .r-head code { font-family: inherit; font-size: 13px; background: none; padding: 0; overflow-wrap: anywhere; color: inherit; }
+  .search-results .r-doc, .search-results .r-snip { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+  .search-results .r-note { padding: 6px 10px; font-size: 13px; color: var(--muted); }
+  mark { background: #FFF1B8; color: inherit; padding: 0 1px; border-radius: 2px; }
+
   .toc .links { margin-top: 28px; padding: 16px 10px 0; border-top: 1px solid var(--line); display: grid; gap: 4px; }
   .toc .links a { color: var(--text); }
 
@@ -187,7 +213,8 @@
     }
     .toc.expanded .toc-toggle { color: var(--mint-dark); border-color: var(--mint); }
     .toc:not(.expanded) > details, .toc:not(.expanded) > .links { display: none; }
-    .toc.expanded .toc-head { margin-bottom: 12px; }
+    .search { margin: 12px 0 0; }
+    .toc.expanded .search, .toc.searching .search { margin-bottom: 12px; }
     main { margin-left: 0; padding: 28px 16px 64px; }
     .endpoint { padding: 18px 16px 14px; }
     .pager { grid-template-columns: 1fr; }
@@ -201,6 +228,11 @@
     <a class="brand" href="#"><img src="assets/logo.png" alt="Fin"><span>API 명세</span></a>
     <button type="button" class="toc-toggle" aria-expanded="false" onclick="this.setAttribute('aria-expanded', document.getElementById('toc').classList.toggle('expanded'))">목차</button>
   </div>
+  <div class="search">
+    <input type="search" id="site-search" placeholder="경로, 필드, 오류 코드 검색" autocomplete="off" spellcheck="false" aria-label="명세 전체 검색" aria-controls="site-search-results">
+    <kbd>/</kbd>
+  </div>
+  <ol class="search-results" id="site-search-results" hidden></ol>
 </nav>
 <main>
   <div class="wrap" id="content">
@@ -424,6 +456,135 @@ function autoOpen(group) {
   if (!group.open) { group.open = true; group.dataset.auto = ''; }
 }
 
+// 화면에는 문서 하나만 보여서 브라우저 찾기로는 다른 문서를 못 찾는다. 그래서 모든 문서를 검색 대상으로 묶는다.
+// 대상은 엔드포인트 카드, 도메인 문서의 도입부, README의 ### 절이다. 띄어쓰기로 나눈 검색어가 모두 들어 있어야 맞는다.
+const MAX_RESULTS = 30;
+
+function buildSearch(content) {
+  const flat = el => el.textContent.replace(/\s+/g, ' ').trim();
+  const entries = [];
+
+  for (const sec of content.querySelectorAll('section.doc')) {
+    const docTitle = sec.querySelector('h1').textContent;
+    const intro = [];
+    for (let n = sec.firstElementChild; n && !n.matches('.endpoint, .pager'); n = n.nextElementSibling) intro.push(n);
+    entries.push({ id: sec.id, title: docTitle, doc: '문서', summary: intro[1] ? flat(intro[1]) : '', text: intro.map(flat).join(' ') });
+
+    for (const card of sec.querySelectorAll('.endpoint')) {
+      const h2 = card.querySelector('h2');
+      const p = card.querySelector(':scope > p');
+      entries.push({ id: h2.id, method: h2.dataset.method, title: h2.dataset.path, doc: docTitle, summary: p ? flat(p) : '', text: flat(card) });
+    }
+  }
+
+  for (const h3 of content.querySelectorAll('#overview > h3')) {
+    const parts = [h3];
+    for (let n = h3.nextElementSibling; n && !/^H[23]$/.test(n.tagName) && !n.matches('.pager'); n = n.nextElementSibling) parts.push(n);
+    entries.push({ id: h3.id, title: h3.textContent, doc: '공통 규칙', summary: parts[1] ? flat(parts[1]) : '', text: parts.map(flat).join(' ') });
+  }
+
+  for (const e of entries) {
+    e.head = `${e.method ?? ''} ${e.title}`.toLowerCase();
+    e.lowerSummary = e.summary.toLowerCase();
+    e.lowerText = `${e.head} ${e.text}`.toLowerCase();
+  }
+
+  const toc = document.getElementById('toc');
+  const input = document.getElementById('site-search');
+  const list = document.getElementById('site-search-results');
+
+  const update = () => {
+    const terms = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+    toc.classList.toggle('searching', terms.length > 0);
+    list.hidden = terms.length === 0;
+    list.replaceChildren();
+    if (!terms.length) return;
+
+    // 경로나 제목에 맞으면 3점, 한 줄 설명에 맞으면 2점, 본문에만 맞으면 1점. 같은 점수는 문서 순서를 지킨다.
+    const hits = entries
+      .filter(e => terms.every(t => e.lowerText.includes(t)))
+      .map((e, i) => ({ e, i, score: terms.reduce((s, t) => s + (e.head.includes(t) ? 3 : e.lowerSummary.includes(t) ? 2 : 1), 0) }))
+      .sort((a, b) => b.score - a.score || a.i - b.i);
+
+    if (!hits.length) {
+      list.innerHTML = '<li class="r-note">결과가 없습니다.</li>';
+      return;
+    }
+    for (const { e } of hits.slice(0, MAX_RESULTS)) list.append(resultItem(e, terms));
+    if (hits.length > MAX_RESULTS) {
+      list.insertAdjacentHTML('beforeend', `<li class="r-note">외 ${hits.length - MAX_RESULTS}건. 검색어를 더 넣어 좁혀 보세요.</li>`);
+    }
+  };
+
+  input.addEventListener('input', update);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { input.value = ''; update(); }
+    if (e.key === 'Enter') list.querySelector('a')?.click();
+  });
+  list.addEventListener('click', e => {
+    const a = e.target.closest('a');
+    if (!a) return;
+    e.preventDefault();
+    goTo(a.getAttribute('href').slice(1));
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey || e.target.closest('input, textarea')) return;
+    e.preventDefault();
+    input.focus();
+    input.select();
+  });
+}
+
+function resultItem(e, terms) {
+  const li = document.createElement('li');
+  const a = document.createElement('a');
+  a.href = `#${e.id}`;
+  const head = document.createElement('span');
+  head.className = 'r-head';
+  if (e.method) {
+    head.innerHTML = `<span class="method ${e.method.toLowerCase()}">${e.method}</span>`;
+    head.append(highlight('code', e.title, terms));
+  } else {
+    head.append(highlight('span', e.title, terms));
+  }
+  a.append(head);
+
+  const doc = highlight('span', e.summary ? `${e.doc} · ${e.summary}` : e.doc, terms);
+  doc.className = 'r-doc';
+  a.append(doc);
+
+  // 제목이나 설명에 없는 검색어는 설명 뒤의 본문에서 그 주변을 잘라 보여준다.
+  const hidden = terms.find(t => !e.head.includes(t) && !e.lowerSummary.includes(t));
+  const lower = e.text.toLowerCase();
+  const from = e.summary ? lower.indexOf(e.lowerSummary) + e.summary.length : 0;
+  const at = hidden ? lower.indexOf(hidden, from) : -1;
+  if (at >= 0) {
+    const start = Math.max(from, at - 30);
+    const end = Math.min(e.text.length, at + hidden.length + 50);
+    const snip = highlight('span', `${start > 0 ? '…' : ''}${e.text.slice(start, end)}${end < e.text.length ? '…' : ''}`, terms);
+    snip.className = 'r-snip';
+    a.append(snip);
+  }
+  li.append(a);
+  return li;
+}
+
+function highlight(tag, text, terms) {
+  const el = document.createElement(tag);
+  const escaped = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern = new RegExp('(' + escaped.join('|') + ')', 'gi');
+  text.split(pattern).forEach((part, i) => {
+    if (i % 2) {
+      const mark = document.createElement('mark');
+      mark.textContent = part;
+      el.append(mark);
+    } else if (part) {
+      el.append(part);
+    }
+  });
+  return el;
+}
+
 async function render() {
   const content = document.getElementById('content');
   try {
@@ -454,6 +615,7 @@ async function render() {
   });
   rewriteLinks(content);
   buildToc(content);
+  buildSearch(content);
   trackActive(content);
   window.addEventListener('hashchange', showRoute);
   showRoute();
