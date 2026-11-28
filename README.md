@@ -16,6 +16,7 @@ Fin 백엔드([ApptiveDev/Fin-BE](https://github.com/ApptiveDev/Fin-BE))가 제�
 - [관심 상품](docs/favorites.md): 관심 상품 등록, 조회, 삭제
 - [계산기](docs/calculator.md): 예적금 이자 계산
 - [캘린더](docs/calendar.md): 정책 일정, 월별 요약
+- [알림](docs/notification.md): 이메일 인증, 알림 설정, 수신거부
 
 ## 공통 규칙
 
